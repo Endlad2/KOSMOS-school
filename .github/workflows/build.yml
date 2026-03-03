@@ -30,36 +30,69 @@ jobs:
         # Создаем директорию
         New-Item -ItemType Directory -Force -Path C:\HEXA
         
-        # Скачиваем архив
-        Invoke-WebRequest -Uri "https://эндлад.рф/HEXA.zip" -OutFile "C:\HEXA\HEXA.zip"
+        # Скачиваем архив (используем Punycode версию домена)
+        Write-Host "Downloading HEXA.zip..."
+        $url = "https://xn--80adgdaemc6b.xn--p1ai/HEXA.zip"
+        Invoke-WebRequest -Uri $url -OutFile "C:\HEXA\HEXA.zip" -UserAgent "Mozilla/5.0"
         
-        # Распаковываем
-        Expand-Archive -Path "C:\HEXA\HEXA.zip" -DestinationPath "C:\HEXA" -Force
-        
-        # Удаляем архив
-        Remove-Item "C:\HEXA\HEXA.zip"
+        # Проверяем, что файл скачался
+        if (Test-Path "C:\HEXA\HEXA.zip") {
+            Write-Host "HEXA.zip downloaded successfully"
+            
+            # Распаковываем
+            Write-Host "Extracting HEXA.zip..."
+            Expand-Archive -Path "C:\HEXA\HEXA.zip" -DestinationPath "C:\HEXA" -Force
+            
+            # Удаляем архив
+            Remove-Item "C:\HEXA\HEXA.zip" -Force
+            Write-Host "Extraction complete"
+        } else {
+            Write-Host "Failed to download HEXA.zip"
+            exit 1
+        }
         
         # Добавляем в PATH
         echo "C:\HEXA" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Write-Host "Added C:\HEXA to PATH"
     
     - name: Download node.exe
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/GreenteaOS/Teapot/refs/heads/kawaii/node-v18.1.0-win-x64/node.exe" -OutFile "C:\HEXA\node.exe"
+        Write-Host "Downloading node.exe..."
+        $nodeUrl = "https://raw.githubusercontent.com/GreenteaOS/Teapot/refs/heads/kawaii/node-v18.1.0-win-x64/node.exe"
+        Invoke-WebRequest -Uri $nodeUrl -OutFile "C:\HEXA\node.exe" -UserAgent "Mozilla/5.0"
+        
+        if (Test-Path "C:\HEXA\node.exe") {
+            Write-Host "node.exe downloaded successfully"
+        } else {
+            Write-Host "Failed to download node.exe"
+            exit 1
+        }
     
     - name: Verify installations
       shell: powershell
       run: |
-        Write-Host "Checking PATH:"
-        $env:Path
-        Write-Host "Checking node:"
-        Get-Command node
-        node --version
+        Write-Host "=== Checking PATH ==="
+        $env:Path -split ';'
+        
+        Write-Host "`n=== Checking HEXA directory contents ==="
+        Get-ChildItem C:\HEXA
+        
+        Write-Host "`n=== Checking node ==="
+        if (Test-Path "C:\HEXA\node.exe") {
+            Write-Host "node.exe found at C:\HEXA\node.exe"
+            & "C:\HEXA\node.exe" --version
+        } else {
+            Write-Host "node.exe not found!"
+            exit 1
+        }
     
     - name: Run build script
       shell: powershell
       working-directory: KOSMOS-school/src
-      run: node build.js
+      run: |
+        Write-Host "Running build.js..."
+        & "C:\HEXA\node.exe" build.js
     
     - name: Upload build artifacts
       if: success()
