@@ -18,25 +18,11 @@ jobs:
         repository: Endlad2/KOSMOS-school
         path: KOSMOS-school
     
-    - name: Clone Teapot repository into KOSMOS-school
+    - name: Clone Teapot repository
       shell: powershell
       run: |
-        # Клонируем Teapot прямо в папку KOSMOS-school
-        Write-Host "Current directory: $(Get-Location)"
-        Write-Host "Cloning Teapot into KOSMOS-school/Teapot..."
-        
         cd KOSMOS-school
         git clone https://github.com/GreenteaOS/Teapot.git
-        
-        # Проверяем, что папка создалась
-        if (Test-Path "Teapot") {
-            Write-Host "✓ Teapot folder exists in KOSMOS-school/Teapot"
-            Write-Host "Contents of Teapot:"
-            Get-ChildItem "Teapot"
-        } else {
-            Write-Host "✗ Teapot folder not found!"
-            exit 1
-        }
     
     - name: Download and setup HEXA
       shell: powershell
@@ -91,62 +77,37 @@ jobs:
             exit 1
         }
     
-    - name: Verify directory structure
+    - name: Verify installations
       shell: powershell
       run: |
-        Write-Host "=== Checking directory structure ==="
-        Write-Host "Current directory: $(Get-Location)"
-        Write-Host "Contents of current directory:"
-        Get-ChildItem
+        Write-Host "=== Checking PATH ==="
+        $env:Path -split ';' | Where-Object { $_ -like "*HEXA*" }
         
-        Write-Host "`nContents of KOSMOS-school:"
-        Get-ChildItem KOSMOS-school
+        Write-Host "`n=== Checking HEXA directory contents ==="
+        Get-ChildItem C:\HEXA
         
-        Write-Host "`nChecking for Teapot in KOSMOS-school:"
-        if (Test-Path "KOSMOS-school/Teapot") {
-            Write-Host "✓ Teapot found at KOSMOS-school/Teapot"
-            Write-Host "Contents of KOSMOS-school/Teapot:"
-            Get-ChildItem "KOSMOS-school/Teapot"
+        Write-Host "`n=== Checking node version ==="
+        if (Test-Path "C:\HEXA\node.exe") {
+            & "C:\HEXA\node.exe" --version
         } else {
-            Write-Host "✗ Teapot not found at KOSMOS-school/Teapot"
+            Write-Host "node.exe not found!"
             exit 1
         }
         
-        Write-Host "`nChecking for src directory:"
-        if (Test-Path "KOSMOS-school/src") {
-            Write-Host "✓ src directory found"
-        } else {
-            Write-Host "✗ src directory not found"
-            exit 1
-        }
+        Write-Host "`n=== Checking if C:\HEXA is in PATH ==="
+        $env:Path | Select-String "HEXA"
     
     - name: Run build script
       shell: powershell
       working-directory: KOSMOS-school/src
       run: |
-        Write-Host "Current directory: $(Get-Location)"
-        Write-Host "Looking for Teapot in parent directory: $(Get-Location)\..\Teapot"
-        
-        # Проверяем наличие Teapot перед запуском
-        if (Test-Path "..\Teapot") {
-            Write-Host "✓ Teapot found at ..\Teapot"
-            Write-Host "Contents of Teapot directory:"
-            Get-ChildItem "..\Teapot"
-            
-            Write-Host "`nRunning build.js..."
-            & "C:\HEXA\node.exe" build.js
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "Build failed with exit code $LASTEXITCODE"
-                exit $LASTEXITCODE
-            }
-            Write-Host "Build completed successfully!"
-        } else {
-            Write-Host "✗ Teapot not found at ..\Teapot"
-            Write-Host "This is required for the build to work"
-            Write-Host "Contents of parent directory (..):"
-            Get-ChildItem ..
-            exit 1
+        Write-Host "Running build.js..."
+        & "C:\HEXA\node.exe" build.js init-or-clean cxx asm efi dll engine ramdisk iso
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
         }
+        Write-Host "Build completed successfully!"
     
     - name: Upload build artifacts
       if: success()
