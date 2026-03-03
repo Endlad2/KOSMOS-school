@@ -102,7 +102,7 @@ jobs:
       working-directory: KOSMOS-school/src
       run: |
         Write-Host "Running build.js..."
-        & "C:\HEXA\node.exe" build.js
+        & "C:\HEXA\node.exe" build.js init-or-clean cxx asm efi dll engine ramdisk iso
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Build failed with exit code $LASTEXITCODE"
             exit $LASTEXITCODE
